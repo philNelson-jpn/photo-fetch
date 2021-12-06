@@ -1,0 +1,89 @@
+const auth = ""//Add your authorization key from pexels.com here
+const gallery = document.querySelector(".gallery")
+const searchInput = document.querySelector(".search-input")
+const from = document.querySelector(".search-form")
+// search input value (what users type):
+let searchValue
+const more = document.querySelector(".more")
+let page = 1
+let fetchLink
+let currentSearch
+
+// Event Listeners
+
+more.addEventListener("click", loadMore)
+
+// Update the fetch url to include the query/search that you type
+searchInput.addEventListener("input", updateInput)
+from.addEventListener("submit", (e) => {
+    e.preventDefault()
+    currentSearch = searchValue
+    searchPhotos(searchValue)
+})
+
+function updateInput(e) {
+    searchValue = e.target.value
+}
+
+async function fetchApi(url) {
+    const dataFetch = await fetch(url, {
+        method: "GET",
+        headers: {
+            Accept: "application/json",
+            Authorization: auth
+        }
+    })
+    const data = await dataFetch.json()
+    return data
+}
+
+function generatePictures(data) {
+    data.photos.forEach(photo => {
+        const galleryImg = document.createElement("div")
+        galleryImg.classList.add("gallery-img")
+        galleryImg.innerHTML = `
+        <div class="gallery-info">
+        <p>${photo.photographer}</p>
+        <a href=${photo.src.large} target="_blank">Download</a>
+        </div>
+        <img src=${photo.src.large}></img>
+        `
+        gallery.appendChild(galleryImg)
+    });
+}
+
+
+// Fetch the data from pexels
+async function curatedPhotos() {
+    fetchLink = "https://api.pexels.com/v1/curated?per_page=15&page=1"
+    const data = await fetchApi(fetchLink)
+    generatePictures(data)
+}
+
+// update the photos to reflect what the user is searching for
+async function searchPhotos(query) {
+    clear()
+    fetchLink = `https://api.pexels.com/v1/search?query=${query}+query&per_page=15&page=1`
+    const data = await fetchApi(fetchLink)
+    generatePictures(data)
+}
+
+// clear out the currently generated photos when you search for something
+function clear() {
+    gallery.innerHTML = ""
+    searchInput.value = ""
+}
+
+// load more photos, but check if the more photos to be loaded should reflect a searched term or just load more curated photos
+async function loadMore() {
+    page++
+    if (currentSearch) {
+        fetchLink = `https://api.pexels.com/v1/search?query=${currentSearch}+query&per_page=15&page=${page}`
+    } else {
+        fetchLink = `https://api.pexels.com/v1/curated?per_page=15&page=${page}`
+    }
+    const data = await fetchApi(fetchLink)
+    generatePictures(data)
+}
+
+curatedPhotos()
